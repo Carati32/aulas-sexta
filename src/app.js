@@ -1,35 +1,78 @@
 import express from 'express'
-import mysql from 'mysql2/promise'
-
+import mysql from 'mysql2/promise';
 const pool = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'senai',
-    database: 'api_node'
-})
-
-const app = express()
+  host: 'localhost',
+  user: 'root',
+  password: 'senai',
+  database: 'api_node'
+});
+const app = express();
+app.use(express.json());
 
 app.get("/", (req, res) => {
-    res.send("Olá mundo")
+  res.send("Olá Mundo")
 })
 
-app.get("/usuarios", async (req,res)=>{
+app.get("/usuarios", async (req, res) => {
+  const [results] = await pool.query(
+    'SELECT * FROM usuario'
+  );
+  res.send(results)
+})
+
+app.get("/usuarios/:id", async (req, res) => {
+  const { id } = req.params
+  const [results] = await pool.query(
+    'SELECT * FROM usuario WHERE idusuario=?', id
+  );
+  res.send(results)
+})
+
+app.post("/usuarios", async (req, res) => {
+  try {
+    const {    } = req
     const [results] = await pool.query(
-        'SELECT * FROM usuario'
+      'INSERT INTO usuario (nome, idade) VALUES (?,?)',
+      [body.nome, body.idade]
+
     );
-    res.send(results)
+    const [usuarioCriado] = await pool.query(
+      "SELECT * FROM usuario WHERE idusuario=?",
+      results.insertId
+    )
+    return res.status(201).json(usuarioCriado)
+  } catch (error) {
+    console.log(error)
+  }
 })
 
-app.get("/usuarios/:id", async (req,res)=>{
+app.delete("/usuarios/:id", async(req, res)=>{
+  try {
     const {id} = req.params
     const [results] = await pool.query(
-        'SELECT * FROM usuario WHERE id_usuario =?', id
+      "DELETE FROM usuario WHERE idusuario=?",
+      id
     );
-    res.send(results)
+    res.status(200).send("Usuário deletado!", results)
+  } catch (error) {
+    console.log(error)
+  }
 })
 
-
-app.listen(3000, () =>{
-    console.log(`Servidor rodando na porta: 3000`)
+app.put("/usuarios/:id", async(req, res)=>{
+  try {
+    const { id } = req.params;
+    const { body } = req
+    const [results] = await pool.query(
+      "UPDATE usuario SET `nome` = ?, `idade` = ? WHERE idusuario=?",
+      [body.nome, body.idade, id]
+    )
+    res.status(200).send("Usuario atualizado", results)
+  } catch (error) {
+    console.log(error)
+  }
 })
+
+app.listen(3000, () => {
+  console.log(`Servidor rodando na porta: 3000`);
+});
